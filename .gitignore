@@ -1,32 +1,314 @@
-# Prerequisites
-*.d
+#include <iostream>
+#include <queue>
+#include <cstdlib>
+using namespace std;
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
+class node {
+private:
+    int _x, _y;         // node location
+    bool is_forbid;     // whether it is a forbidden cell
+    bool is_visited;    // whether it has been visited in search
+    bool is_inqueue;
 
-# Precompiled Headers
-*.gch
-*.pch
+public:
+	node* parent;       // the previous node during search to record the search path
+    node() {
+        is_forbid = false;
+        is_visited = false;
+        is_inqueue=false;
+    }
 
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
+    void set_forbidden() {
+        is_forbid = true;
+    }
 
-# Fortran module files
-*.mod
-*.smod
+    void set_visited() {
+        is_visited = true;
+    }
+    
+    void set_inqueue(){
+    	is_inqueue= true;
+	}
 
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
+    void set_xy(int x, int y) {
+        _x = x;
+        _y = y;
+    }
 
-# Executables
-*.exe
-*.out
-*.app
+    int get_x() {
+        return _x;
+    }
+
+    int get_y() {
+        return _y;
+    }
+
+    bool if_forbid() {
+        return is_forbid;
+    }
+
+    bool if_visited() {
+        return is_visited;
+    }
+    
+    bool if_inqueue()
+    {
+    	return is_inqueue;
+	}
+};
+
+class GridWorld {
+private:
+    int width, height;
+    node** cell;
+
+public:
+    GridWorld(int width, int height);
+
+    void set_forbid(int x, int y);
+
+    bool check_node_valid(int x, int y);
+
+    node* get_node(int x, int y);
+
+    bool bfs_search(node* start, node* end);
+
+    void show_grid(int s_x, int s_y, int g_x, int g_y);
+
+    void set_start(int x, int y);
+
+    void set_goal(int x, int y);
+
+    bool validate(int x, int y);
+};
+
+GridWorld::GridWorld(int width, int height) {
+    this->width = width;
+    this->height = height;
+    cell = new node*[width];
+    for (int i = 0; i < width; ++i) {
+        cell[i] = new node[height];
+        for (int j = 0; j < height; ++j) {
+            cell[i][j].set_xy(i, j);
+        }
+    }
+}
+
+
+void GridWorld::show_grid(int s_x, int s_y, int g_x, int g_y) {
+    for (int k = 0; k < width; ++k) {
+        cout << "____";
+    }
+    cout << endl;
+
+    for (int i = 0; i < height; ++i) {
+        cout << "|";
+        for (int j = 0; j < width; ++j) {
+            if (s_x == i && s_y == j)
+                cout << "_S_|";
+            else if (g_x == i && g_y == j)
+                cout << "_G_|";
+            else if (cell[i][j].if_forbid())
+                cout << "_X_|";
+            else
+                cout << "___|";
+        }
+        cout << endl;
+    }
+
+    for (int k = 0; k < width; ++k) {
+        cout << "____";
+    }
+    cout << endl;
+}
+
+
+void GridWorld::set_start(int x, int y) {
+    cell[x][y].set_visited();
+}
+
+void GridWorld::set_goal(int x, int y) {
+    cell[x][y].set_visited();
+}
+
+
+void GridWorld::set_forbid(int x, int y) {
+    cell[x][y].set_forbidden();
+}
+
+bool GridWorld::validate(int x, int y) {
+	
+    if (x >= width || x < 0 || y >= height || y < 0)    // out of boundary     //if (x<0 || y<0) cout<<"xy<0\n";
+		return false;
+	node *child = get_node (x , y);
+	
+    if (child->if_forbid()) {
+        return false;
+    }
+    if (child->if_visited()) {
+        return false;
+    }
+
+    return true;
+}
+
+node* GridWorld::get_node(int x, int y) {
+    return &cell[x][y];
+}
+
+bool GridWorld::bfs_search(node *start, node *end)
+{
+	start->parent=NULL;
+	queue<node *> q;
+	bool found=false;
+	int g_x=end->get_x();
+	int g_y=end->get_y();
+
+	q.push(start);
+
+	cout<<"start loop..."<<endl;
+	while (!q.empty() && !found)
+	{
+		//cout<<"in loop..."<<endl;
+//		queue<node *> qq;
+//		qq=q;
+//		while(!qq.empty()){
+//			cout<<" ("<<qq.front()->get_x()<<","<<qq.front()->get_y()<<"),";
+//			qq.pop();
+//		}
+		//cout <<endl;
+			
+		node* a =q.front();
+		q.pop();
+
+		int a_x=a->get_x();
+		int a_y=a->get_y();
+		a->set_visited();
+		cout<< "("<<a_x<<","<<a_y<<")";
+	
+		if (a_x==g_x && a_y==g_y)
+		{
+			found=true;
+			break;
+		}
+
+
+		// 3. get neighbors....
+		int n_x=a_x;
+		int n_y=a_y-1;
+		if (validate (n_x,n_y))
+		{
+			node* north=get_node(n_x, n_y);
+			north->parent=a;
+			q.push(north);
+		}
+
+		//else 
+		//	cout<<"invalid:("<<n_x <<","<<n_y<<")"<<endl;
+			
+		//cout<< "("<<n_x<<","<<n_y<<")";
+		
+		
+		int e_x=a_x+1;
+		int e_y=a_y;
+		if (validate (e_x, e_y))
+		{
+			node* east=get_node(e_x, e_y);
+			east->parent=a;
+			
+			q.push(east);
+		}
+		//else 
+		//	cout<<"invalid:("<<e_x <<","<<e_y<<")"<<endl;
+			
+		//cout<< "("<<e_x<<","<<e_y<<")";
+		
+		
+		int so_x=a_x;
+		int so_y=a_y+1;
+		if (validate (so_x,so_y))
+		{
+			node* south=get_node(so_x, so_y);
+			south->parent=a;
+			q.push(south);
+		}
+		//else 
+		//	cout<<"invalid:("<<so_x <<","<<so_y<<")"<<endl;
+
+		//cout<< "("<<so_x<<","<<so_y<<")";
+		
+		int w_x=a_x-1;
+		int w_y=a_y;
+		if (validate (w_x,w_y))
+		{
+			node* west=get_node(w_x, w_y);
+			west->parent=a;
+			q.push(west);
+		}
+		//else 
+		//	cout<<"invalid:("<<w_x <<","<<w_y<<")"<<endl;
+			//
+		//cout<< "("<<w_x<<","<<w_y<<")" ;
+		//cout<<endl;
+		// 4 validate neighbors.
+	} //end of loop
+
+	if (found)
+	{
+		cout<<"found it"<<endl;
+		node * n=end; 
+		while (n->parent!=NULL)
+		{
+			cout <<"("<<n->get_x()<<","<<n->get_y()<<")";
+			n=n->parent;
+	    }
+		return true;
+	}
+	else
+		cout<<"NOT Found it"<<endl;
+		
+		return false;
+}
+
+
+
+int main ()
+{
+	int w, h;
+	int sx, sy,gx,gy;
+	int forbidden_cells[6][2]={ {1,1},{2,2},{3,3},{4,4},{5,5},{6,6} };
+	
+	cout<<"Please enter the width and height of the Grid:";
+	cin >> w >> h;
+	cout << "w="<<w <<",h="<<h<<endl;
+	
+	cout<<"Please enter the x and y of the Start cell:";
+	cin >> sx >> sy;
+	
+	
+	cout<<"Please enter the x and y of the Goal cell:";
+	cin >> gx >> gy;
+	
+	GridWorld gw(w,h);
+	//gw.set_start(sx,sy);
+	//gw.set_goal(gx,gy);
+
+	for (int k=0; k<6;++k)
+	{
+		int f_x=forbidden_cells[k][0];
+		int f_y=forbidden_cells[k][1];
+		gw.set_forbid(f_x,f_y);
+		cout <<k <<":"<<f_x<<","<<f_y<<endl;
+	}
+
+
+
+
+ 	gw.show_grid(sx, sy, gx  , gy);
+
+    node* start = gw.get_node(sx, sy);
+    node* goal = gw.get_node(gx, gy);
+    bool result = gw.bfs_search(start, goal);
+
+    return 0;
+}
